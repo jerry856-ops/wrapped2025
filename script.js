@@ -1,186 +1,166 @@
-/* script.js — Final stable file */
+/* script.js — FULL fixed + features:
+   - safe lazy audio init on first user gesture
+   - BPM detection + strong background sync
+   - per-slide SVG choreography via data-svg-motion
+   - repeated SVG usage & placement handled by CSS/helper classes
+   - animated captions/lyrics
+   - export PNG with auto-share sizing (3 presets)
+   - Spotify-outro share modal (fake)
+*/
 
-/* ---------------------------
-   Helper / Globals
-   --------------------------- */
+let config = null;
+
+/* DOM refs */
 const slides = Array.from(document.querySelectorAll('.panel'));
 const dotsRoot = document.getElementById('dots');
+
 const playerRoot = document.getElementById('playerRoot');
 const playerToggle = document.getElementById('playerToggle');
 const playerPanel = document.getElementById('playerPanel');
 
+const playBtn = document.getElementById('playBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const volumeSlider = document.getElementById('volume');
+const trackProgress = document.getElementById('trackProgress');
+const curTime = document.getElementById('curTime');
+const durTime = document.getElementById('durTime');
+const trackTitle = document.getElementById('trackTitle');
+const playlistEl = document.getElementById('playlist');
+const bpmPulseEl = document.getElementById('bpmPulse');
+
 let idx = 0;
 let navLock = false;
-let config = null;
 
-// set initial layout (stacked vertically)
-function layoutSlides() {
-  slides.forEach((s, i) => {
-    s.style.transform = `translateY(${(i - idx) * 100}vh)`;
-    // set base theme colors as CSS variables
-    const theme = s.dataset.theme || 'green';
-    s.style.setProperty('--base1', getThemeColor(theme, 0));
-    s.style.setProperty('--base2', getThemeColor(theme, 1));
-  });
-}
-layoutSlides();
+/* Audio vars */
+let audio = null;
+let audioCtx = null;
+let analyser = null;
+let dataArray = null;
+let sourceNode = null;
+let playlistItems = [];
+let trackIndex = 0;
+let progressRAF = null;
+let detectRAF = null;
 
-/* ---------------------------
-   Load config.json & fill content
-   --------------------------- */
-async function loadConfig() {
+/* --- Load config.json and populate --- */
+async function loadConfig(){
   try {
     const res = await fetch('config.json');
     config = await res.json();
-    populateFromConfig();
-    buildPlaylist();
-    animateCountersWhenVisible(); // initial check
-    updateRecapValues();
-  } catch (e) {
+  } catch(e) {
     console.error('Failed to load config.json', e);
+    config = null;
   }
+  fillContent();
+  buildDots();
+  layoutSlides();
+  buildPlaylist();
+  animateCountersWhenVisible();
+  updateRecapValues();
 }
-
-function populateFromConfig(){
-  // counters (elements with .counter and data-key)
+function fillContent(){
+  if(!config) return;
+  // counters
   document.querySelectorAll('.counter').forEach(el=>{
     const key = el.dataset.key;
-    if (config && key in config) {
-      el.textContent = '0'; // will animate later
-    } else {
-      el.textContent = el.textContent || '—';
-    }
+    const val = config.stats && config.stats[key] !== undefined ? config.stats[key] : null;
+    el.textContent = val !== null ? '0' : el.textContent;
   });
   // peak hours
   const ph = document.getElementById('peakHours');
-  if(ph) ph.textContent = config.peakHours || '—';
-
-  // eras list
-  const erasList = document.getElementById('erasList');
-  if(erasList){
-    erasList.innerHTML = '';
-    (config.eras || []).forEach(s => {
-      const li = document.createElement('li'); li.textContent = s;
-      erasList.appendChild(li);
-    });
+  if(ph) ph.textContent = config.stats.peakHours || '—';
+  // eras & facts
+  const eras = document.getElementById('erasList');
+  if(eras){
+    eras.innerHTML = '';
+    (config.eras || []).forEach(s => { const li = document.createElement('li'); li.textContent = s; eras.appendChild(li); });
   }
-
-  // facts list
-  const factsList = document.getElementById('factsList');
-  if(factsList){
-    factsList.innerHTML = '';
-    (config.unhingedFacts || []).forEach(f => {
-      const li = document.createElement('li'); li.textContent = f;
-      factsList.appendChild(li);
-    });
+  const facts = document.getElementById('factsList');
+  if(facts){
+    facts.innerHTML = '';
+    (config.unhingedFacts || []).forEach(s => { const li = document.createElement('li'); li.textContent = s; facts.appendChild(li); });
   }
 }
 
-/* ---------------------------
-   Theme color helper
-   --------------------------- */
-function getThemeColor(theme, idxColor){
-  // fallback colors
-  const defaults = {
-    green: ['#061006','#042814'],
-    purple: ['#0b0520','#2b0f6a'],
-    blue: ['#051027','#0a2b52'],
-    red: ['#2b0707','#5b0f0f']
-  };
-  if(config && config.themeColors && config.themeColors[theme]) {
-    return config.themeColors[theme][idxColor] || defaults[theme][idxColor];
-  }
-  return defaults[theme][idxColor];
+/* --- Layout slides stacked vertically + apply svg motion preset --- */
+function layoutSlides(){
+  slides.forEach((s,i)=>{
+    s.style.transform = `translateY(${(i - idx) * 100}vh)`;
+    // set theme gradient
+    const theme = s.dataset.theme || 'green';
+    const colors = config && config.themeColors && config.themeColors[theme] ? config.themeColors[theme] : ['#061006','#042814'];
+    s.style.setProperty('--base1', colors[0]);
+    s.style.setProperty('--base2', colors[1]);
+    s.style.background = `linear-gradient(180deg, ${colors[0]}, ${colors[1]})`;
+    applySvgMotionPreset(s);
+  });
+}
+function applySvgMotionPreset(panel){
+  const preset = panel.dataset.svgMotion || 'none';
+  const decor = panel.querySelector('.panelDecor');
+  if(!decor) return;
+  decor.querySelectorAll('.svg').forEach(svg=>{
+    svg.classList.remove('svgMotion-float','svgMotion-spin','svgMotion-orbit','svgMotion-pulse','svgMotion-none');
+    if(preset === 'float') svg.classList.add('svgMotion-float');
+    if(preset === 'spin') svg.classList.add('svgMotion-spin');
+    if(preset === 'orbit') svg.classList.add('svgMotion-orbit');
+    if(preset === 'pulse') svg.classList.add('svgMotion-pulse');
+    if(preset === 'none') svg.classList.add('svgMotion-none');
+  });
 }
 
-/* ---------------------------
-   Slide navigation & dots
-   --------------------------- */
-function buildDots() {
+/* --- Dots nav --- */
+function buildDots(){
   dotsRoot.innerHTML = '';
-  slides.forEach((_, i) => {
+  slides.forEach((_,i)=>{
     const btn = document.createElement('button');
     btn.title = slides[i].dataset.title || `Slide ${i+1}`;
-    btn.addEventListener('click', () => goTo(i));
-    if(i === idx) btn.classList.add('active');
+    btn.addEventListener('click', ()=> goTo(i));
+    if(i===idx) btn.classList.add('active');
     dotsRoot.appendChild(btn);
   });
 }
-buildDots();
-
-function updateDots() {
-  Array.from(dotsRoot.children).forEach((b, i) => {
-    b.classList.toggle('active', i === idx);
-  });
+function updateDots(){
+  Array.from(dotsRoot.children).forEach((b,i)=> b.classList.toggle('active', i===idx));
 }
 
-function goTo(i) {
+/* --- Navigation handlers --- */
+function goTo(i){
   idx = Math.max(0, Math.min(i, slides.length - 1));
   layoutSlides();
   updateDots();
   animateCountersWhenVisible();
-  applyThemeToBody();
 }
-
-function applyThemeToBody(){
-  // Change body background by mixing the slide base colors and a dynamic --bgshift
-  const currentSlide = slides[idx];
-  const base1 = getComputedStyle(currentSlide).getPropertyValue('--base1') || '#061006';
-  const base2 = getComputedStyle(currentSlide).getPropertyValue('--base2') || '#042814';
-  document.body.style.background = `linear-gradient(180deg, ${base1}, ${base2})`;
-}
-
-/* wheel debounce lock */
-let wheelTimeout;
-window.addEventListener('wheel', e => {
+window.addEventListener('wheel', e=>{
   if(navLock) return;
   navLock = true;
   goTo(idx + (e.deltaY > 0 ? 1 : -1));
-  clearTimeout(wheelTimeout);
-  wheelTimeout = setTimeout(()=> navLock = false, 650);
-}, {passive:true});
+  setTimeout(()=> navLock = false, 700);
+},{passive:true});
+let ts=null;
+window.addEventListener('touchstart', e=>{ if(e.touches && e.touches[0]) ts=e.touches[0].clientY; }, {passive:true});
+window.addEventListener('touchend', e=>{
+  if(ts===null) return;
+  const dy = (e.changedTouches[0].clientY - ts);
+  if(Math.abs(dy)>50) goTo(idx + (dy<0?1:-1));
+  ts=null;
+},{passive:true});
+window.addEventListener('keydown', e=>{ if(e.key==='ArrowDown') goTo(idx+1); if(e.key==='ArrowUp') goTo(idx-1); });
 
-/* touch swipe support */
-let touchStartY = null;
-window.addEventListener('touchstart', e => { if(e.touches && e.touches[0]) touchStartY = e.touches[0].clientY; }, {passive:true});
-window.addEventListener('touchend', e => {
-  if(touchStartY === null) return;
-  const dy = (e.changedTouches[0].clientY - touchStartY);
-  if(Math.abs(dy) > 50) {
-    goTo(idx + (dy < 0 ? 1 : -1));
-  }
-  touchStartY = null;
-}, {passive:true});
-
-/* keyboard nav */
-window.addEventListener('keydown', e => {
-  if(e.key === 'ArrowDown') goTo(idx + 1);
-  if(e.key === 'ArrowUp') goTo(idx - 1);
-});
-
-/* initialize layout and theme */
-goTo(0);
-
-/* ---------------------------
-   Counters (animate when slide visible)
-   --------------------------- */
-function isSlideVisible(i) {
-  return i === idx;
-}
-
+/* --- Counters animation --- */
 function animateCountersWhenVisible(){
-  slides.forEach((s, i) => {
-    if(isSlideVisible(i)) {
-      s.querySelectorAll('.counter').forEach(el => {
+  slides.forEach((s,i)=>{
+    if(i===idx){
+      s.querySelectorAll('.counter').forEach(el=>{
         const key = el.dataset.key;
-        const target = (config && key in config) ? +config[key] : +el.dataset.target || 0;
+        const target = config && config.stats && config.stats[key] !== undefined ? config.stats[key] : (+el.dataset.target || 0);
         animateValue(el, target, 900 + Math.random()*600);
       });
     }
   });
 }
-
-function animateValue(el, to, duration=900){
+function animateValue(el,to,duration=900){
   const start = Number(el.textContent.replace(/\D/g,'')) || 0;
   const startTime = performance.now();
   function step(now){
@@ -192,110 +172,94 @@ function animateValue(el, to, duration=900){
   requestAnimationFrame(step);
 }
 
-/* ---------------------------
-   Player + Audio + BPM visuals + background beat
-   --------------------------- */
-let audio = null;
-let audioCtx = null;
-let analyser = null;
-let dataArray = null;
-let sourceNode = null;
-let playlistItems = [];
-let trackIndex = 0;
-let animationRAF = null;
-
-const playBtn = document.getElementById('playBtn');
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
-const volumeSlider = document.getElementById('volume');
-const trackProgress = document.getElementById('trackProgress');
-const curTime = document.getElementById('curTime');
-const durTime = document.getElementById('durTime');
-const trackTitle = document.getElementById('trackTitle');
-const playlistEl = document.getElementById('playlist');
-
-// build playlist from config
+/* --- Playlist & Player --- */
 function buildPlaylist(){
   if(!config || !config.playlist) return;
   playlistEl.innerHTML = '';
-  playlistItems = config.playlist.map((t,i) => {
+  playlistItems = config.playlist.map((t,i)=>{
     const li = document.createElement('li');
     li.textContent = t.title;
     li.dataset.src = t.src;
-    li.addEventListener('click', ()=> setTrack(i));
+    li.addEventListener('click', ()=> setTrack(i, true));
     playlistEl.appendChild(li);
     return {title: t.title, src: t.src, el: li};
   });
-  // set first active
-  setTrack(0, false);
+  if(playlistItems.length){
+    trackIndex = 0;
+    playlistItems[0].el.classList.add('active');
+    trackTitle.textContent = playlistItems[0].title;
+  }
 }
-
 function setTrack(i, autoplay=true){
   if(!playlistItems.length) return;
   trackIndex = ((i % playlistItems.length) + playlistItems.length) % playlistItems.length;
+  playlistItems.forEach((it,idx)=> it.el.classList.toggle('active', idx===trackIndex));
   const item = playlistItems[trackIndex];
-  // highlight playlist
-  playlistItems.forEach((it, idx) => it.el.classList.toggle('active', idx === trackIndex));
-  // create audio (use one instance)
-  if(audio) {
+  trackTitle.textContent = item.title || `Track ${trackIndex+1}`;
+  if(audio){
     audio.pause();
     audio.src = item.src;
-  } else {
-    audio = new Audio(item.src);
+    audio.load();
+    if(autoplay){ audio.play().catch(()=>{}); playBtn.textContent='⏸'; startProgressLoop(); }
+  } else if(autoplay){
+    createAudio(item.src).then(()=>{ audio.play().catch(()=>{}); playBtn.textContent='⏸'; startProgressLoop(); });
   }
-  audio.crossOrigin = "anonymous";
-  audio.volume = +volumeSlider.value;
-  trackTitle.textContent = item.title || `Track ${trackIndex+1}`;
-  if(autoplay) { audio.play().catch(()=>{}); playBtn.textContent='⏸'; }
-  setupAudioContextAndAnalysis();
-  bindProgressEvents();
 }
 
-playerToggle.addEventListener('click', ()=>{
+/* --- createAudio: lazy and safe --- */
+async function createAudio(src){
+  if(!src && config && config.playlist && config.playlist.length) src = config.playlist[trackIndex].src;
+  audio = new Audio(src);
+  audio.crossOrigin = "anonymous";
+  audio.preload = 'auto';
+  audio.volume = +volumeSlider.value;
+  audio.addEventListener('loadedmetadata', ()=> { durTime.textContent = formatTime(audio.duration); });
+  audio.addEventListener('ended', ()=> setTrack(trackIndex + 1, true));
+  setupAudioContextAndAnalysis();
+}
+
+/* --- Player UI toggle --- */
+playerToggle.addEventListener('click', ()=> {
   const isOpen = playerRoot.classList.toggle('open');
   playerRoot.classList.toggle('closed', !isOpen);
   playerToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   playerPanel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
 });
-
-document.getElementById('closePlayer').addEventListener('click', ()=>{
-  playerRoot.classList.remove('open');
-  playerRoot.classList.add('closed');
-  playerToggle.setAttribute('aria-expanded', 'false');
-  playerPanel.setAttribute('aria-hidden', 'true');
+document.getElementById('closePlayer').addEventListener('click', ()=> {
+  playerRoot.classList.remove('open'); playerRoot.classList.add('closed');
+  playerToggle.setAttribute('aria-expanded', 'false'); playerPanel.setAttribute('aria-hidden', 'true');
 });
 
+/* --- Safe Play handler (ensures AudioContext resumed) --- */
 playBtn.addEventListener('click', async ()=>{
-  if(!audio) return;
-  if(audio.paused) {
-    await audio.play().catch(()=>{}); playBtn.textContent='⏸';
+  if(!audio){
+    const firstSrc = playlistItems.length ? playlistItems[trackIndex].src : (config && config.playlist && config.playlist[0] && config.playlist[0].src);
+    if(!firstSrc) return;
+    await createAudio(firstSrc);
+  }
+  if(audioCtx && audioCtx.state === 'suspended') {
+    try { await audioCtx.resume(); } catch(e){}
+  }
+  if(audio.paused){
+    await audio.play().catch(()=>{});
+    playBtn.textContent='⏸';
     startProgressLoop();
-  } else { audio.pause(); playBtn.textContent='▶'; cancelAnimationFrame(animationRAF); }
+  } else {
+    audio.pause();
+    playBtn.textContent='▶';
+    cancelAnimationFrame(progressRAF);
+  }
 });
+
 prevBtn.addEventListener('click', ()=> setTrack(trackIndex - 1, true));
 nextBtn.addEventListener('click', ()=> setTrack(trackIndex + 1, true));
 volumeSlider.addEventListener('input', e => { if(audio) audio.volume = +e.target.value; });
 
-function bindProgressEvents(){
-  if(!audio) return;
-  audio.addEventListener('loadedmetadata', ()=> {
-    durTime.textContent = formatTime(audio.duration);
-  });
-  audio.addEventListener('ended', ()=> {
-    setTrack(trackIndex + 1, true);
-  });
-}
-
-function formatTime(s){
-  if(!s || isNaN(s)) return '0:00';
-  const m = Math.floor(s/60); const sec = Math.floor(s%60).toString().padStart(2,'0');
-  return `${m}:${sec}`;
-}
-
-let progressRAF;
+/* --- Progress loop --- */
 function startProgressLoop(){
+  cancelAnimationFrame(progressRAF);
   function loop(){
-    if(audio && audio.duration) {
+    if(audio && audio.duration){
       const pct = (audio.currentTime / audio.duration) * 100;
       trackProgress.value = pct;
       curTime.textContent = formatTime(audio.currentTime);
@@ -303,174 +267,270 @@ function startProgressLoop(){
     }
     progressRAF = requestAnimationFrame(loop);
   }
-  cancelAnimationFrame(progressRAF);
   progressRAF = requestAnimationFrame(loop);
 }
-trackProgress.addEventListener('input', () => {
-  if(audio && audio.duration) {
-    audio.currentTime = (trackProgress.value / 100) * audio.duration;
-  }
+trackProgress.addEventListener('input', ()=> {
+  if(audio && audio.duration) audio.currentTime = (trackProgress.value / 100) * audio.duration;
 });
+function formatTime(s){ if(!s||isNaN(s)) return '0:00'; const m=Math.floor(s/60); const sec=Math.floor(s%60).toString().padStart(2,'0'); return `${m}:${sec}`; }
 
-/* AudioContext and analyser for BPM/amplitude */
+/* --- AudioContext & analysis & BPM estimation --- */
 function setupAudioContextAndAnalysis(){
   try {
     if(!audio) return;
-    if(audioCtx) { /* reuse */ }
-    else audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-    // disconnect previous
-    if(sourceNode) { try { sourceNode.disconnect(); } catch(_){} }
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(sourceNode){ try{ sourceNode.disconnect(); } catch(_){} }
     sourceNode = audioCtx.createMediaElementSource(audio);
     analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
+    analyser.fftSize = 2048;
     const bufferLength = analyser.frequencyBinCount;
     dataArray = new Uint8Array(bufferLength);
-
     sourceNode.connect(analyser);
     analyser.connect(audioCtx.destination);
-
-    // detection loop
-    detectBeat();
-    // start progress loop if playing
-    if(!audio.paused) startProgressLoop();
-
-  } catch(e) {
+    detectBeatLoop();
+    estimateBPMFromAudio();
+  } catch(e){
     console.warn('Audio analysis not available', e);
   }
 }
 
-/* beat detection: simple amplitude-based; pulses BPM svg and shifts backgrounds */
-let lastPeak = 0;
-function detectBeat() {
-  if(!analyser || !dataArray) return;
+/* --- Beat detection loop (stronger mapping) --- */
+let lastPeakTime = 0;
+function detectBeatLoop(){
+  if(!analyser) return;
   analyser.getByteTimeDomainData(dataArray);
-  // compute mean deviation from 128
-  let sum = 0;
-  for(let i=0;i<dataArray.length;i++) sum += Math.abs(dataArray[i] - 128);
-  const avg = sum / dataArray.length;
-  // map avg to 0-1 (rough)
-  const norm = Math.min(1, (avg / 40)); // tweak divisor for sensitivity
-  // if strong peak occurs, pulse
+  // rms-like energy
+  let sum=0;
+  for(let i=0;i<dataArray.length;i++){
+    const v = (dataArray[i] - 128) / 128;
+    sum += v*v;
+  }
+  const rms = Math.sqrt(sum / dataArray.length);
+  // stronger sensitivity mapping for more visible effect
+  const energy = Math.min(1, Math.pow(rms*4.5, 1.12));
   const now = performance.now();
-  if(avg > 18 && (now - lastPeak) > 180) { // debounce ~180ms to avoid noise
-    lastPeak = now;
-    pulseVisuals(norm);
+  if(energy > 0.11 && (now - lastPeakTime) > 140){
+    lastPeakTime = now;
+    pulseBpmRing(energy);
+    // also trigger per-slide SVG micro-pulse
+    pulseSlideSvgs(energy);
   }
-  // constantly also use norm to gently change CSS var --bgshift
-  // convert norm [0..1] to angle deg 0..60 (for gradient rotate effect) or to mix factor
-  document.documentElement.style.setProperty('--bgshift', `${norm}`);
-  requestAnimationFrame(detectBeat);
+  document.documentElement.style.setProperty('--bgshift', `${energy}`);
+  detectRAF = requestAnimationFrame(detectBeatLoop);
 }
 
-function pulseVisuals(strength=0.6) {
-  // bpmViz circle pulse
-  const circle = document.querySelector('#bpmViz circle');
-  if(circle) {
-    circle.animate([
-      { transform: 'scale(1)', opacity: 1, strokeWidth: '8px' },
-      { transform: 'scale(' + (1 + strength * 0.3) + ')', opacity: 0.2, strokeWidth: (8 + strength*12) + 'px' }
-    ], { duration: 260, easing: 'ease-out' });
-  }
-
-  // scale svgs gently
-  document.querySelectorAll('.svg').forEach(el => {
-    el.animate([{ transform: 'scale(1)' }, { transform: `scale(${1 + strength*0.06})` }, { transform: 'scale(1)' }], { duration: 360, easing: 'ease-out' });
-  });
-
-  // change background blend via CSS variable --bgshift to cause gradients to appear more saturated
-  // We'll animate a subtle flash: set a higher --bgshift then lerp down
-  const start = performance.now();
-  const duration = 400;
-  const from = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bgshift')) || 0;
-  const to = Math.min(1, from + strength * 0.8);
-  function bgFrame(now) {
-    const t = Math.min(1, (now - start) / duration);
-    const val = from + (to - from) * (1 - Math.pow(1 - t, 2));
-    document.documentElement.style.setProperty('--bgshift', `${val}`);
-    if(t < 1) requestAnimationFrame(bgFrame);
-  }
-  requestAnimationFrame(bgFrame);
+/* Pulse BPM ring */
+function pulseBpmRing(strength){
+  if(!bpmPulseEl) return;
+  const scale = 1 + Math.min(0.85, strength * 1.1);
+  bpmPulseEl.animate([
+    { transform: 'scale(1)', opacity: 1 },
+    { transform: `scale(${scale})`, opacity: 0.18 }
+  ], { duration: 260, easing: 'ease-out' });
 }
 
-/* apply actual background effect per slide using CSS var --bgshift */
-function applyBackgroundEffects(){
-  slides.forEach(s => {
-    // compute two CSS colors from slide variables and mix with global shift
-    const base1 = getComputedStyle(s).getPropertyValue('--base1').trim() || '#061006';
-    const base2 = getComputedStyle(s).getPropertyValue('--base2').trim() || '#042814';
-    // sample bgshift value from root
-  });
-}
-// We'll update body background on animation frames to include the --bgshift factor.
-function bgUpdateLoop() {
-  // get current shift
-  const shift = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bgshift')) || 0;
-  // blend current slide colors with a neon accent using shift
+/* simple slide svg pulse */
+function pulseSlideSvgs(strength){
   const cur = slides[idx];
-  if(cur) {
+  if(!cur) return;
+  cur.querySelectorAll('.panelDecor .svg').forEach((el)=>{
+    el.animate([{ transform: getComputedStyle(el).transform }, { transform: `${getComputedStyle(el).transform} scale(${1 + Math.min(0.06, strength*0.12)})` }, { transform: getComputedStyle(el).transform }], { duration: 340, easing: 'ease-out' });
+  });
+}
+
+/* estimate BPM from peaks */
+function estimateBPMFromAudio(){
+  if(!analyser) return;
+  const sampleTimes=[];
+  let localLast=0;
+  const tmp = new Uint8Array(analyser.frequencyBinCount);
+  const start = performance.now();
+  function sampler(){
+    analyser.getByteTimeDomainData(tmp);
+    let sum=0;
+    for(let i=0;i<tmp.length;i++) sum += Math.abs(tmp[i]-128);
+    const avg = sum/tmp.length;
+    const tNow = performance.now();
+    if(avg > 30 && tNow - localLast > 180){ sampleTimes.push(tNow); localLast = tNow; }
+    if(tNow - start < 7000 && sampleTimes.length < 9) requestAnimationFrame(sampler);
+    else {
+      if(sampleTimes.length >= 2){
+        const intervals = [];
+        for(let i=1;i<sampleTimes.length;i++) intervals.push(sampleTimes[i]-sampleTimes[i-1]);
+        intervals.sort((a,b)=>a-b);
+        const med = intervals[Math.floor(intervals.length/2)];
+        const bpm = Math.round(60000/med);
+        applyBpmToRing(bpm);
+      } else applyBpmToRing(90);
+    }
+  }
+  sampler();
+}
+
+/* apply BPM to ring animation (rotational speed) */
+function applyBpmToRing(bpm){
+  const spb = 60 / Math.max(30, Math.min(220, bpm));
+  if(!bpmPulseEl) return;
+  // make ring rotate at a rate tied to bpm (slow spin)
+  bpmPulseEl.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: spb * 8000, iterations: Infinity, easing: 'linear' });
+}
+
+/* background update loop uses --bgshift to drive stronger gradients */
+function bgUpdateLoop(){
+  const shift = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bgshift')) || 0;
+  const cur = slides[idx];
+  if(cur){
     const c1 = getComputedStyle(cur).getPropertyValue('--base1').trim() || '#061006';
     const c2 = getComputedStyle(cur).getPropertyValue('--base2').trim() || '#042814';
-    // create a CSS gradient where we slightly move color stops based on shift
-    const mid = 20 + Math.round(shift * 50); // shift midpoint for dynamic feel
+    // make gradient strongly react to shift
+    const mid = 10 + Math.round(shift * 60);
+    const neon = Math.round(shift * 160);
     document.body.style.background = `linear-gradient(180deg, ${c1} ${mid}%, ${c2})`;
-    // also apply a very subtle overlay glow when shift high
-    const glowAlpha = Math.min(0.18, shift * 0.25);
-    document.body.style.setProperty('--bg-glow', `rgba(155,93,229,${glowAlpha})`);
+    document.body.style.boxShadow = `inset 0 0 ${20 + neon}px rgba(155,93,229,${Math.min(0.12, shift*0.5)})`;
   }
   requestAnimationFrame(bgUpdateLoop);
 }
 requestAnimationFrame(bgUpdateLoop);
 
-/* ---------------------------
-   SVG SMIL fallback handling:
-   If browser supports SMIL, blob.svg will morph automatically.
-   If not, we can slightly pulse/scale it via CSS/JS already above.
-   Keep existing svg reuse - no extra changes needed.
-   --------------------------- */
-
-/* ---------------------------
-   Export recap (txt)
-   --------------------------- */
-document.getElementById('exportRecap')?.addEventListener('click', ()=>{
+/* --- Export recap PNG (auto-share sizing) --- */
+async function exportRecapPNG(width=1200, height=630){
   if(!config) return;
-  const lines = [
-    'ChatGPT Wrapped — 2025 (Unofficial)',
-    `Total messages: ${config.totalMessages}`,
-    `Active days: ${config.activeDays}`,
-    `Longest streak: ${config.longestStreak} days`,
-    `Brain-rot index: ${config.brainrot}%`,
-    '',
-    'Eras:',
-    ...config.eras.map((e,i)=>`${i+1}. ${e}`),
-    '',
-    'Unhinged facts:',
-    ...config.unhingedFacts.map((f,i)=>`${i+1}. ${f}`)
-  ];
-  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'chatgpt_wrapped_recap.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-});
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext('2d');
 
-/* fake share button (demonstration) */
-document.getElementById('shareRecap')?.addEventListener('click', ()=>{
-  alert('This is a fake share button for demo — implement platform-specific sharing in production.');
-});
+  // background gradient from current slide
+  const cur = slides[idx];
+  const c1 = getComputedStyle(cur).getPropertyValue('--base1').trim() || '#061006';
+  const c2 = getComputedStyle(cur).getPropertyValue('--base2').trim() || '#042814';
+  const grad = ctx.createLinearGradient(0,0,0,height);
+  grad.addColorStop(0, c1); grad.addColorStop(1, c2);
+  ctx.fillStyle = grad; ctx.fillRect(0,0,width,height);
 
-/* ---------------------------
-   Update recap display numbers
-   --------------------------- */
-function updateRecapValues(){
-  if(!config) return;
-  document.getElementById('recapMsgs') && (document.getElementById('recapMsgs').textContent = config.totalMessages);
-  document.getElementById('recapDays') && (document.getElementById('recapDays').textContent = config.activeDays);
-  document.getElementById('recapBrain') && (document.getElementById('recapBrain').textContent = config.brainrot + '%');
+  // header
+  ctx.fillStyle = 'white';
+  ctx.font = '700 36px Inter, system-ui, sans-serif';
+  ctx.fillText('ChatGPT Wrapped 2025 — Unofficial', 40, 60);
+
+  // stats block
+  ctx.font = '600 28px Inter, sans-serif';
+  const s = config.stats || {};
+  ctx.fillText(`Messages: ${s.totalMessages || '—'}`, 40, 120);
+  ctx.fillText(`Active days: ${s.activeDays || '—'}`, 40, 160);
+  ctx.fillText(`Longest streak: ${s.longestStreak || '—'}`, 40, 200);
+  ctx.fillText(`Brain-rot: ${s.brainrot || '—'}%`, 40, 240);
+
+  // draw a decorative svg (hero) top-right (scaled)
+  try {
+    const svgUrl = 'svgs/hero.svg';
+    const resp = await fetch(svgUrl);
+    const svgText = await resp.text();
+    const blob = new Blob([svgText], {type:'image/svg+xml'});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    await new Promise((resolve) => {
+      img.onload = () => { 
+        const imgW = Math.min(280, width * 0.22);
+        ctx.drawImage(img, width - imgW - 40, 40, imgW, imgW);
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+      img.onerror = ()=> resolve();
+      img.src = url;
+    });
+  } catch(e){/* ignore */ }
+
+  // finalize download
+  return new Promise((resolve)=>{
+    canvas.toBlob(blob=>{
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `wrapped_recap_${width}x${height}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+      resolve();
+    }, 'image/png');
+  });
 }
 
-/* ---------------------------
-   Initialize
-   --------------------------- */
+/* export buttons handlers (three auto sizes) */
+document.getElementById('exportRecap')?.addEventListener('click', ()=> exportRecapPNG(1200,630));
+document.getElementById('exportInsta')?.addEventListener('click', ()=> exportRecapPNG(1080,1080));
+document.getElementById('exportStory')?.addEventListener('click', ()=> exportRecapPNG(1080,1920));
+
+/* fake share modal (Spotify Outro) */
+document.getElementById('shareRecap')?.addEventListener('click', ()=>{
+  // simple fake modal/flow
+  const shareBox = document.createElement('div');
+  shareBox.style = "position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;";
+  shareBox.innerHTML = `<div style="background:#07070a;padding:18px;border-radius:12px;color:white;max-width:560px;text-align:center;">
+    <h3>Share your vibe</h3>
+    <p style="opacity:.9">Choose a size to export your recap image and share it on socials. This is a demo share modal.</p>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:12px">
+      <button id="s1200">1200×630</button>
+      <button id="s1080">1080×1080</button>
+      <button id="s1920">1080×1920</button>
+    </div>
+    <div style="margin-top:12px"><button id="closeShare">Close</button></div>
+  </div>`;
+  document.body.appendChild(shareBox);
+  shareBox.querySelector('#s1200').onclick = async ()=>{ await exportRecapPNG(1200,630); shareBox.remove(); };
+  shareBox.querySelector('#s1080').onclick = async ()=>{ await exportRecapPNG(1080,1080); shareBox.remove(); };
+  shareBox.querySelector('#s1920').onclick = async ()=>{ await exportRecapPNG(1080,1920); shareBox.remove(); };
+  shareBox.querySelector('#closeShare').onclick = ()=> shareBox.remove();
+});
+
+/* update recap numbers to UI */
+function updateRecapValues(){
+  if(!config) return;
+  document.getElementById('recapMsgs') && (document.getElementById('recapMsgs').textContent = config.stats.totalMessages);
+  document.getElementById('recapDays') && (document.getElementById('recapDays').textContent = config.stats.activeDays);
+  document.getElementById('recapBrain') && (document.getElementById('recapBrain').textContent = config.stats.brainrot + '%');
+}
+
+/* Build playlist UI */
+function buildPlaylist(){
+  if(!config || !config.playlist) return;
+  playlistEl.innerHTML = '';
+  playlistItems = config.playlist.map((t,i) => {
+    const li = document.createElement('li');
+    li.textContent = t.title;
+    li.dataset.src = t.src;
+    li.addEventListener('click', ()=> setTrack(i, true));
+    playlistEl.appendChild(li);
+    return {title: t.title, src: t.src, el: li};
+  });
+  if(playlistItems.length) {
+    trackIndex = 0;
+    playlistItems[0].el.classList.add('active');
+    trackTitle.textContent = playlistItems[0].title;
+  }
+}
+
+/* Utility: ensure audio context/resume on any first user gesture (improves reliability) */
+function ensureAudioUnlockedOnce(){
+  function once(){
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+    // if audio not created yet, create lazy audio if playlist exists but don't autplay
+    if(!audio && config && config.playlist && config.playlist[0]) {
+      // don't autoplay — just prepare the audio object so browser player appears
+      audio = new Audio(config.playlist[0].src);
+      audio.crossOrigin = "anonymous";
+      audio.preload = 'metadata';
+      audio.volume = +volumeSlider.value;
+    }
+    window.removeEventListener('pointerdown', once);
+    window.removeEventListener('keydown', once);
+  }
+  window.addEventListener('pointerdown', once, {passive:true});
+  window.addEventListener('keydown', once, {passive:true});
+}
+ensureAudioUnlockedOnce();
+
+/* Start everything */
 loadConfig();
 
-/* expose goTo for debugging */
+/* Expose goTo for debugging */
 window.wrappedGoTo = goTo;
