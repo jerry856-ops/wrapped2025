@@ -31,9 +31,6 @@ All visible content comes from **one file**:
 
 config.json
 
-yaml
-Copy code
-
 - Change values → refresh → site updates instantly  
 - No JavaScript editing needed  
 - Safe to edit for anyone
@@ -121,9 +118,6 @@ Your repository **must** look like this:
 │
 └─ music/
 (optional / unused)
-
-yaml
-Copy code
 
 ✅ Only `config.json` is meant to be edited.
 
