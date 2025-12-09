@@ -1,17 +1,17 @@
 📊 ChatGPT Wrapped 2025
 
-Spotify Wrapped… but for ChatGPT users.
+Spotify Wrapped — but for ChatGPT users.
 
 This project is a full-screen, interactive, Spotify-Wrapped–style website that visualizes a person’s ChatGPT usage over a year using fake-but-believable data.
 
 No real ChatGPT data is accessed.
-This is about vibes, eras, chaos, and big numbers.
+This project is about vibes, eras, chaos, and big numbers 🥀
 
 ✨ What this is
 
 ChatGPT Wrapped 2025 turns estimated chat behavior into:
 
-Big animated stats
+Big animated statistics
 
 “Eras” that describe phases of the year
 
@@ -19,31 +19,31 @@ Habits & quirks
 
 Unhinged but believable facts
 
-A dramatic Spotify-style outro
+A dramatic Spotify-style finale
 
-Everything is driven by one config file.
+Everything is powered by a single configuration file.
 
-🧠 How it works (high level)
-1️⃣ config.json = the brain
+🧠 How it works
+1️⃣ config.json — the brain
 
-All content comes from one file:
+All visible content comes from one file:
 
 config.json
 
-Change values → the site updates automatically.
+Change values → refresh → the site updates instantly.
 No JavaScript editing required.
 
 2️⃣ Slide system (Spotify Wrapped style)
 
 Full-screen vertical slides
 
-One slide visible at a time
+Only one slide visible at a time
 
-Scroll, swipe, keyboard, or navigation dots
+Scroll, swipe, arrow keys, or navigation dots
 
-Slides “lock” in place like real Spotify Wrapped
+Slides “lock” into place like real Spotify Wrapped
 
-Each slide has:
+Each slide contains:
 
 A theme color
 
@@ -53,21 +53,21 @@ Animated SVG decorations
 
 Stats or lists generated from config.json
 
-3️⃣ Stats & animated counters
+3️⃣ Animated stats & counters
 
-Stats such as:
+Stats like:
 
-total messages
+Total messages
 
-active days
+Active days
 
-longest streak
+Longest streak
 
-brain-rot index
+Brain-rot index
 
-Animate from 0 → final value when the slide becomes visible, creating that classic “reveal” effect.
+Animate from 0 → final value when the slide appears, creating the classic Spotify reveal moment.
 
-All values come from:
+All values are taken from:
 
 config.json.stats
 
@@ -79,53 +79,62 @@ eras[] → phases of the year
 
 unhingedFacts[] → funny, chaotic highlights
 
-This turns raw numbers into an actual narrative instead of boring analytics.
+This turns boring numbers into an actual timeline of vibes.
 
 5️⃣ SVG visuals
 
 SVGs are:
 
-reused across slides
+Reused across slides
 
-resized, rotated, faded
+Resized, rotated, faded
 
-layered behind text but above the background
+Layered behind text but above the background
 
-This keeps performance high while still looking animated and Spotify-coded.
+This keeps performance high while still looking dynamic and Spotify-coded.
 
 6️⃣ Fake-but-believable data (important)
 
-Because real ChatGPT usage data is not accessible:
+Because real ChatGPT usage data isn’t accessible:
 
-all stats are estimates
+All stats are estimates
 
-intentionally realistic
+Designed to feel realistic
 
-meant for fun, not analytics
+Made for fun, not analytics
 
-This is a design choice, not a limitation.
+This is intentional.
 
 📁 Required folder structure
 
-Your repository must look like this:
+Your repository must follow this structure:
 
 /
-├─ index.html
-├─ style.css
-├─ script.js
-├─ config.json
-│
-├─ svgs/
-│ ├─ hero.svg
-│ ├─ wave.svg
-│ ├─ blob.svg
-│ ├─ badge.svg
-│ └─ sparkles.svg
-│
-└─ music/
+
+index.html
+
+style.css
+
+script.js
+
+config.json
+
+svgs/
+
+hero.svg
+
+wave.svg
+
+blob.svg
+
+badge.svg
+
+sparkles.svg
+
+music/
 (optional / currently unused)
 
-Only config.json is meant to be edited by users.
+✅ Only config.json is meant to be edited by users.
 
 ✏️ How to customize your own Wrapped
 
@@ -135,19 +144,19 @@ Open config.json
 
 Edit:
 
-stats
+Stats
 
-eras
+Eras
 
-unhinged facts
+Unhinged facts
 
 Save and refresh the site
 
-That’s it.
+Done 🥀
 
 🪄 Universal ChatGPT Prompt (JSON Generator)
 
-Anyone can generate their own compatible config.json using ChatGPT.
+Anyone can generate a fully compatible config.json using ChatGPT.
 
 ✅ Copy & paste this into ChatGPT:
 
@@ -155,18 +164,18 @@ Create a JSON file for a fake “ChatGPT Wrapped 2025” website.
 
 Rules:
 
-Output ONLY valid JSON.
+Output ONLY valid JSON
 
-Do NOT include explanations, comments, or markdown.
+Do NOT include explanations, comments, or markdown
 
-Match the structure exactly.
+Follow the structure exactly
 
 Context:
 Pretend you are summarizing my ChatGPT usage for the year.
 Make the stats feel realistic, slightly unhinged, and Gen-Z coded.
 This is NOT real data — it’s a fun recap.
 
-JSON structure to follow exactly:
+JSON structure:
 
 {
 "stats": {
@@ -195,21 +204,19 @@ JSON structure to follow exactly:
 
 Guidelines:
 
-totalMessages: between 5,000 and 50,000
+totalMessages: 5,000–50,000
 
-activeDays: between 50 and 365
+activeDays: 50–365
 
-brainrot: between 60 and 100
+brainrot: 60–100
 
-eras should sound like phases of a year
+Eras should sound like phases of a year
 
-unhingedFacts should be funny but believable
-
-playlist can stay as a placeholder
+Unhinged facts should be funny but believable
 
 Now generate the JSON.
 
-✅ How to use the generated JSON
+✅ Using the generated JSON
 
 Copy ChatGPT’s output
 
@@ -219,18 +226,19 @@ Save the file
 
 Refresh the website
 
-Instant personalized Wrapped.
+Your personal Wrapped is ready.
 
 ⚠️ Disclaimer
 
 This project does not access real ChatGPT data
 
-It is not affiliated with OpenAI or Spotify
+Not affiliated with OpenAI or Spotify
 
-It exists purely for fun, vibes, and frontend experimentation
+Built purely for fun, vibes, and frontend experimentation
 
 🥀 Final note
 
 “What if Spotify Wrapped… but for people who talk to ChatGPT at 3am?”
 
+Yeah.
 That’s this project.
