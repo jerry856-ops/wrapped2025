@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ChatGPT Wrapped 2025 — Final</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- PLAYER (bottom-right collapsed) -->
+<div id="playerRoot" class="closed" aria-hidden="false">
+  <button id="playerToggle" aria-expanded="false" title="Open player">🎧</button>
+
+  <div id="playerPanel" aria-hidden="true">
+    <div class="playerTop">
+      <div class="trackMeta">
+        <div id="trackTitle">Track</div>
+        <div id="trackArtist" class="muted">Playlist</div>
+      </div>
+      <button id="closePlayer" title="Close">✕</button>
+    </div>
+
+    <div class="playerVizWrap">
+      <svg id="bpmViz" viewBox="0 0 120 120" class="bpmViz" aria-hidden="true">
+        <defs><linearGradient id="vg" x1="0" x2="1"><stop offset="0" stop-color="#1ed760"/><stop offset="1" stop-color="#9b5de5"/></linearGradient></defs>
+        <circle cx="60" cy="60" r="36" stroke="url(#vg)" stroke-width="8" fill="rgba(255,255,255,0.02)"></circle>
+      </svg>
+
+      <div class="progressWrap">
+        <input id="trackProgress" type="range" min="0" max="100" step="0.1" value="0" />
+        <div class="times"><span id="curTime">0:00</span><span id="durTime">0:00</span></div>
+      </div>
+    </div>
+
+    <div class="playerControls">
+      <button id="prevBtn" title="Previous">⏮</button>
+      <button id="playBtn" title="Play">▶</button>
+      <button id="nextBtn" title="Next">⏭</button>
+      <div class="volumeWrap">
+        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" />
+      </div>
+    </div>
+
+    <div class="playlistWrap">
+      <ul id="playlist"></ul>
+    </div>
+  </div>
+</div>
+
+<!-- NAV DOTS -->
+<nav id="dots" aria-hidden="false"></nav>
+
+<!-- SLIDES -->
+<main id="slides">
+  <!-- Slide 0: Intro -->
+  <section class="panel" data-theme="green" data-title="Intro">
+    <div class="panelInner">
+      <img src="svgs/hero.svg" class="svg hero large" alt="hero" />
+      <h1>ChatGPT Wrapped 2025</h1>
+      <p class="muted">Your chaotic log of curiosity — condensed.</p>
+    </div>
+  </section>
+
+  <!-- Slide 1: Stats -->
+  <section class="panel" data-theme="purple" data-title="Stats">
+    <div class="panelInner">
+      <h2>THE STATS</h2>
+      <div class="statsGrid">
+        <div class="statCard">
+          <div class="statNum counter" data-key="totalMessages">0</div>
+          <div class="statLabel">Total messages</div>
+        </div>
+        <div class="statCard">
+          <div class="statNum counter" data-key="activeDays">0</div>
+          <div class="statLabel">Active days</div>
+        </div>
+        <div class="statCard">
+          <div class="statNum counter" data-key="longestStreak">0</div>
+          <div class="statLabel">Longest streak (days)</div>
+        </div>
+        <div class="statCard">
+          <div class="statNum counter" data-key="brainrot">0</div>
+          <div class="statLabel">Brain-rot index (%)</div>
+        </div>
+        <div class="statCard">
+          <div class="statNum">22</div>
+          <div class="statLabel">Peak hour</div>
+        </div>
+        <div class="statCard">
+          <div class="statNum smallMuted" id="peakHours">—</div>
+          <div class="statLabel muted">Peak hours</div>
+        </div>
+      </div>
+
+      <!-- reuse wave.svg bigger -->
+      <img src="svgs/wave.svg" class="svg wave xl" alt="wave"/>
+    </div>
+  </section>
+
+  <!-- Slide 2: Eras (many lines) -->
+  <section class="panel" data-theme="blue" data-title="Eras">
+    <div class="panelInner">
+      <h2>ERAS — your year in vibes</h2>
+      <ol id="erasList" class="erasList largeList"></ol>
+
+      <!-- reuse badge small -->
+      <img src="svgs/badge.svg" class="svg badge small" alt="badge"/>
+      <img src="svgs/badge.svg" class="svg badge rotateSmall" alt="badge2"/>
+    </div>
+  </section>
+
+  <!-- Slide 3: Habits & Quirks -->
+  <section class="panel" data-theme="red" data-title="Habits">
+    <div class="panelInner">
+      <h2>HABITS & QUIRKS</h2>
+      <ul class="habitsList">
+        <li>Night owl — peak messages at <b>22:00–01:00</b></li>
+        <li>Terminal copy-paste mid-anime recommendations</li>
+        <li>Pivot champ: ~68% chance to change topic mid-chat (EST)</li>
+        <li>Emoji stamp: 🥀 everywhere</li>
+      </ul>
+
+      <!-- reuse blob.svg morphing larger and rotated slightly -->
+      <img src="svgs/blob.svg" class="svg blob xlarge rotate" alt="blob"/>
+    </div>
+  </section>
+
+  <!-- Slide 4: Obsessions -->
+  <section class="panel" data-theme="green" data-title="Obsessions">
+    <div class="panelInner">
+      <h2>OBSESSIONS</h2>
+      <div class="pills">
+        <span class="pill">Networking</span>
+        <span class="pill">Anime</span>
+        <span class="pill">Photography</span>
+        <span class="pill">Forza & Mods</span>
+        <span class="pill">Terminals</span>
+        <span class="pill">Wrapped Prompts</span>
+      </div>
+
+      <!-- reuse sparkles.svg multiple times -->
+      <img src="svgs/sparkles.svg" class="svg spark small" alt="spark1"/>
+      <img src="svgs/sparkles.svg" class="svg spark small rotateSmall" alt="spark2"/>
+    </div>
+  </section>
+
+  <!-- Slide 5: Unhinged Facts -->
+  <section class="panel" data-theme="purple" data-title="Unhinged">
+    <div class="panelInner">
+      <h2>UNHINGED FACTS</h2>
+      <ul id="factsList" class="factsList"></ul>
+
+      <!-- reuse hero.svg smaller faint -->
+      <img src="svgs/hero.svg" class="svg hero small faded" alt="hero small"/>
+    </div>
+  </section>
+
+  <!-- Slide 6: Fake Spotify Recap Outro -->
+  <section class="panel finalPanel" data-theme="blue" data-title="Finale">
+    <div class="panelInner">
+      <h2>FINALE — your unofficial recap</h2>
+      <div class="recapCard">
+        <div class="recapBig">You: <span id="recapMsgs">0</span> msgs</div>
+        <div class="recapRow">Active <b id="recapDays">0</b> days • Brain-rot <b id="recapBrain">0%</b></div>
+        <button id="exportRecap">EXPORT RECAP (txt)</button>
+        <button id="shareRecap">FAKE SHARE</button>
+      </div>
+
+      <!-- decorative reuse wave + sparkles -->
+      <img src="svgs/wave.svg" class="svg wave medium" alt="wave2"/>
+      <img src="svgs/sparkles.svg" class="svg spark small" alt="sparkles"/>
+    </div>
+  </section>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>

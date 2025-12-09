@@ -1,0 +1,120 @@
+:root{
+  --bgshift: 0;
+  --accent1: #1ed760;
+  --accent2: #9b5de5;
+  --muted: rgba(255,255,255,0.7);
+  --panel-radius: 18px;
+}
+
+/* reset */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#05050a;color:#f7f7fb;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;overflow:hidden}
+
+/* Slides container (we translate each panel) */
+#slides{position:relative;height:100vh;width:100vw;overflow:hidden}
+
+/* Panels stacked absolute */
+.panel{
+  position:absolute;left:0;top:0;width:100%;height:100vh;
+  display:flex;align-items:center;justify-content:center;padding:36px;
+  transition:transform 720ms cubic-bezier(.2,.9,.2,1), filter 300ms;
+  /* background uses a CSS variable animated by JS for beat */
+  background: linear-gradient(180deg, rgba(0,0,0,0.0), rgba(0,0,0,0.0));
+}
+
+/* theme base gradients (JS will mix with beat) */
+.panel[data-theme="green"]{--base1:#061006;--base2:#042814}
+.panel[data-theme="purple"]{--base1:#0b0520;--base2:#2b0f6a}
+.panel[data-theme="blue"]{--base1:#051027;--base2:#0a2b52}
+.panel[data-theme="red"]{--base1:#2b0707;--base2:#5b0f0f}
+
+/* panels build gradient using variables (JS also changes --bgshift to modulate) */
+.panel { background: linear-gradient(180deg,var(--base1), var(--base2)); }
+.panel::after{
+  content:"";position:absolute;inset:0;background:linear-gradient(90deg, rgba(255,255,255,0.02), transparent);
+  mix-blend-mode: overlay;pointer-events:none;
+}
+
+/* inner width */
+.panelInner{max-width:1100px;width:94%;text-align:center;position:relative;z-index:2}
+
+/* headings */
+h1{font-size:clamp(28px,6vw,52px);margin:10px 0}
+h2{font-size:clamp(20px,4vw,34px);margin-bottom:12px}
+.muted{color:var(--muted);font-size:14px}
+
+/* stats grid */
+.statsGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:18px}
+.statCard{background:rgba(0,0,0,0.2);padding:16px;border-radius:12px}
+.statNum{font-weight:900;font-size:2.2rem;font-family:monospace}
+.statLabel{color:var(--muted);margin-top:8px;font-size:0.95rem}
+
+/* big lists */
+.largeList{font-size:1.1rem;text-align:left;max-width:720px;margin:16px auto}
+.habitsList, .erasList, .factsList{list-style:disc;margin-left:22px;text-align:left;max-width:760px}
+
+/* buttons */
+button{cursor:pointer}
+
+/* DOTS */
+#dots{position:fixed;left:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:120}
+#dots button{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.14);border:none;outline:none}
+#dots button.active{background:linear-gradient(90deg,var(--accent1),var(--accent2));box-shadow:0 8px 26px rgba(155,93,229,0.12);transform:scale(1.18)}
+
+/* SVG sizing & reuse classes */
+.svg{display:block;max-width:100%;height:auto}
+.hero.large{width:420px}
+.hero.small{width:160px}
+.wave.xl{width:860px}
+.wave.medium{width:420px}
+.blob.xlarge{width:520px}
+.blob.large{width:380px}
+.small{width:140px}
+.badge.small{width:86px}
+.spark.small{width:110px}
+.rotate{transform:rotate(8deg)}
+.rotateSmall{transform:rotate(-8deg)}
+.faded{opacity:0.55}
+.glow{filter:drop-shadow(0 18px 40px rgba(155,93,229,0.16))}
+
+/* morph animation fallback (if SMIL not supported) */
+.blob.morph{transition:transform 700ms ease;}
+
+/* PLAYER */
+#playerRoot{position:fixed;right:18px;bottom:18px;z-index:140;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+#playerToggle{width:54px;height:54px;border-radius:14px;background:linear-gradient(90deg,var(--accent1),var(--accent2));border:none;color:#07110a;font-size:20px}
+#playerPanel{width:340px;background:rgba(0,0,0,0.45);padding:12px;border-radius:14px;box-shadow:0 22px 80px rgba(0,0,0,0.6);transform-origin:100% 100%;opacity:0;pointer-events:none;transform:translateY(10px) scale(.98)}
+#playerRoot.open #playerPanel{opacity:1;pointer-events:auto;transform:translateY(0) scale(1);transition:all 320ms cubic-bezier(.2,.9,.2,1)}
+
+/* player internals */
+.playerTop{display:flex;justify-content:space-between;align-items:center}
+.trackMeta{display:flex;flex-direction:column}
+.trackMeta .muted{font-size:12px}
+.playerVizWrap{display:flex;gap:12px;align-items:center;margin-top:10px}
+.bpmViz{width:76px;height:76px}
+.progressWrap{flex:1}
+#trackProgress{width:100%}
+.times{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px}
+
+.playerControls{display:flex;align-items:center;gap:10px;margin-top:10px}
+.playerControls button{padding:8px 10px;border-radius:10px;border:none;background:rgba(255,255,255,0.03);color:var(--muted)}
+.volumeWrap input{width:100px}
+
+/* playlist */
+.playlistWrap{max-height:120px;overflow:auto;margin-top:8px}
+.playlistWrap ul{list-style:none;padding:0;margin:0}
+.playlistWrap li{padding:8px;border-radius:8px;cursor:pointer}
+.playlistWrap li.active{background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#03120a;font-weight:800}
+
+/* recap card */
+.recapCard{background:rgba(0,0,0,0.25);padding:18px;border-radius:12px;display:inline-block;margin-top:10px}
+.recapBig{font-weight:900;font-size:1.8rem}
+.recapRow{color:var(--muted);margin-top:8px}
+
+/* responsive tweaks */
+@media (max-width:720px){
+  #dots{display:none}
+  .hero.large{width:320px}
+  .blob.xlarge{width:320px}
+  #playerPanel{width:92vw;right:4vw}
+}

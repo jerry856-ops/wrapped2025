@@ -1,0 +1,44 @@
+{
+  "_meta": {
+    "note": "Edit these values to change the fake stats, eras, and facts shown on the site.",
+    "totalMessages": "number - total messages count (int)",
+    "activeDays": "number - how many days you were active (int)",
+    "longestStreak": "number - longest streak in days (int)",
+    "peakHours": "string - human readable, e.g. '22:00–01:00'",
+    "brainrot": "number - percent 0-100",
+    "eras": "array of strings - list of era names",
+    "unhingedFacts": "array of strings - list of fun facts",
+    "playlist": "array of objects {title, src} - tracks for the player (src relative to /music)",
+    "themeColors": "object mapping themeName to hex colors for per-slide colorization"
+  },
+
+  "totalMessages": 11482,
+  "activeDays": 241,
+  "longestStreak": 19,
+  "peakHours": "22:00–01:00",
+  "brainrot": 92,
+  "eras": [
+    "Tech hyperfixation era",
+    "Apple ecosystem lore era",
+    "Existential 3am era",
+    "‘One last question’ delusion era",
+    "Photo boss planning era"
+  ],
+  "unhingedFacts": [
+    "Sent messages at 03:12 for no reason",
+    "Said 'one last question' 71 times",
+    "Emotionally attached to an AI",
+    "Tried to install macOS on PC (for science)"
+  ],
+  "playlist": [
+    { "title": "Lo-fi Wakeup", "src": "music/track1.mp3" },
+    { "title": "Late Night Drive", "src": "music/track2.mp3" },
+    { "title": "Soft Shutdown", "src": "music/track3.mp3" }
+  ],
+  "themeColors": {
+    "green": ["#061006", "#042814"],
+    "purple": ["#0b0520", "#2b0f6a"],
+    "blue": ["#051027", "#0a2b52"],
+    "red": ["#2b0707", "#5b0f0f"]
+  }
+}

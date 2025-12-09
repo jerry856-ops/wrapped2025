@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs><linearGradient id="bg" x1="0" x2="1"><stop offset="0" stop-color="#1ed760"/><stop offset="1" stop-color="#9b5de5"/></linearGradient></defs>
+  <circle cx="60" cy="60" r="54" fill="url(#bg)"/>
+  <circle cx="60" cy="60" r="40" fill="rgba(0,0,0,0.08)"/>
+  <text x="60" y="70" font-size="36" text-anchor="middle" fill="#fff" font-weight="800">🥀</text>
+</svg>

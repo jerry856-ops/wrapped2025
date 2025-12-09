@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="bg1" x1="0" x2="1"><stop offset="0" stop-color="#ff8a00"/><stop offset="1" stop-color="#e52e71"/></linearGradient>
+  </defs>
+  <g transform="translate(0,0)">
+    <path id="morph" fill="url(#bg1)">
+      <!-- starting path -->
+      <animate attributeName="d" dur="6s" repeatCount="indefinite"
+        values="
+M300,40 C380,40 520,60 530,170 C540,280 480,360 420,420 C360,480 240,560 150,470 C60,380 120,260 120,190 C120,120 220,40 300,40 Z;
+M300,30 C420,30 540,80 520,180 C500,280 420,350 360,420 C300,490 220,520 150,440 C80,360 80,240 140,170 C200,100 260,30 300,30 Z;
+M300,40 C380,40 520,60 530,170 C540,280 480,360 420,420 C360,480 240,560 150,470 C60,380 120,260 120,190 C120,120 220,40 300,40 Z"/>
+    </path>
+  </g>
+</svg>

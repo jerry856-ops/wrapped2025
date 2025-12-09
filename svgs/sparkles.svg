@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <g fill="#fff" opacity="0.95">
+    <circle cx="12" cy="20" r="2">
+      <animate attributeName="r" values="2;5;2" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="48" cy="8" r="1.6">
+      <animate attributeName="r" values="1.6;4;1.6" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="88" cy="28" r="1.8">
+      <animate attributeName="r" values="1.8;4.2;1.8" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>
